@@ -9,11 +9,13 @@ import os
 st.set_page_config(page_title="PDF Cover & Watermark Tool", layout="centered")
 st.title("PDF Cover & Watermark Tool")
 
-# Upload multiple PDFs
-uploaded_pdfs = st.file_uploader(
-    "Upload one or more PDFs",
-    type=["pdf"],
-    accept_multiple_files=True
+# Upload main PDF
+main_pdf = st.file_uploader("Upload Main PDF", type=["pdf"])
+
+# Optional output name
+output_name = st.text_input(
+    "Output file name (optional, without .pdf)",
+    placeholder="Output PDF name (e.g., 'document')"
 )
 
 # Assets paths
@@ -29,8 +31,8 @@ def create_watermark(page_width, page_height, logo_img):
     c.setFillAlpha(0.1)
 
     logo_width = page_width * 0.3
-    ratio = logo_img.height / logo_img.width
-    logo_height = logo_width * ratio
+    aspect_ratio = logo_img.height / logo_img.width
+    logo_height = logo_width * aspect_ratio
 
     x = (page_width - logo_width) / 2
     y = (page_height - logo_height) / 2
@@ -58,48 +60,42 @@ def add_watermark(page, logo_img):
     return page
 
 
-if uploaded_pdfs:
+if main_pdf:
     if not all(map(os.path.exists, [FRONT_COVER, BACK_COVER, LOGO_PATH])):
         st.error("Required files missing in assets folder.")
         st.stop()
 
+    writer = PdfWriter()
     logo_image = Image.open(LOGO_PATH)
 
-    st.divider()
-    st.subheader("Processed Files")
+    # Front cover (no watermark)
+    for page in PdfReader(FRONT_COVER).pages:
+        writer.add_page(page)
 
-    for idx, pdf_file in enumerate(uploaded_pdfs, start=1):
-        with st.container(border=True):
-            st.markdown(f"### 📄 {pdf_file.name}")
+    # Main PDF (with watermark)
+    for page in PdfReader(main_pdf).pages:
+        writer.add_page(add_watermark(page, logo_image))
 
-            writer = PdfWriter()
+    # Back cover (no watermark)
+    for page in PdfReader(BACK_COVER).pages:
+        writer.add_page(page)
 
-            # Front cover (no watermark)
-            for page in PdfReader(FRONT_COVER).pages:
-                writer.add_page(page)
+    output = io.BytesIO()
+    writer.write(output)
+    output.seek(0)
 
-            # Main PDF (with watermark)
-            for page in PdfReader(pdf_file).pages:
-                writer.add_page(add_watermark(page, logo_image))
+    st.success("PDF processed successfully")
 
-            # Back cover (no watermark)
-            for page in PdfReader(BACK_COVER).pages:
-                writer.add_page(page)
+    # Filename decision logic
+    final_filename = (
+        f"{output_name}.pdf" if output_name.strip() else main_pdf.name
+    )
 
-            output = io.BytesIO()
-            writer.write(output)
-            output.seek(0)
-
-            # Filename: original + _CS
-            base_name, ext = os.path.splitext(pdf_file.name)
-            final_filename = f"{base_name}_CS{ext}"
-
-            st.download_button(
-                label="⬇️ Download PDF",
-                data=output,
-                file_name=final_filename,
-                mime="application/pdf",
-                use_container_width=True
-            )
+    st.download_button(
+        label="Download PDF",
+        data=output,
+        file_name=final_filename,
+        mime="application/pdf"
+    )
 else:
-    st.info("Upload one or more PDFs to proceed.")
+    st.info("Upload a PDF to proceed.")
