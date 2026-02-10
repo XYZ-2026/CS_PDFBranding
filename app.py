@@ -20,8 +20,8 @@ output_name = st.text_input(
 
 # Assets paths
 ASSETS_DIR = "assets"
-FRONT_COVER = os.path.join(ASSETS_DIR, "front_cover.pdf")
-BACK_COVER = os.path.join(ASSETS_DIR, "back_cover.pdf")
+FRONT_COVER = os.path.join(ASSETS_DIR, "FRONT COVER FINAL.pdf")
+BACK_COVER = os.path.join(ASSETS_DIR, "BACK COVER FINAL.pdf")
 LOGO_PATH = os.path.join(ASSETS_DIR, "logo.png")
 
 
@@ -99,4 +99,5 @@ if main_pdf:
     )
 else:
     st.info("Upload a PDF to proceed.")
+
 
